@@ -6,19 +6,15 @@ import numpy as np
 from PIL import Image
 
 class PatchCoreExtractor:
-    def __init__(self, device='cpu'): # Su PC usiamo CPU di default
+    def __init__(self, device='cpu'):
         self.device = torch.device(device)
-        # Carica ResNet18
-        weights = models.ResNet18_Weights.IMAGENETIK_V1
+        weights = models.ResNet18_Weights.IMAGENET1K_V1
         self.model = models.resnet18(weights=weights).to(self.device)
         self.model.eval()
-        
         self.features = None
         self.model.layer2.register_forward_hook(self._hook_fn)
-        
-        self.knn = NearestNeighbors(n_neighbors=1, algorithm='ball_tree')
+        self.knn = NearestNeighbors(n_neighbors=1, algorithm='brute', n_jobs=-1)
         self.memory_bank = None
-        
         self.preprocess = transforms.Compose([
             transforms.Resize((256, 256)),
             transforms.ToTensor(),
@@ -33,7 +29,6 @@ class PatchCoreExtractor:
         tensor = self.preprocess(img).unsqueeze(0).to(self.device)
         with torch.no_grad():
             self.model(tensor)
-        
         feats = self.features.squeeze() # [128, 32, 32]
         # Flatten: [128, 1024] -> trasposto: [1024, 128]
         return feats.view(feats.size(0), -1).t().cpu().numpy()
@@ -43,7 +38,6 @@ class PatchCoreExtractor:
         bank = []
         for path in image_paths:
             bank.append(self.get_features(path))
-        
         self.memory_bank = np.vstack(bank)
         self.knn.fit(self.memory_bank)
         print(f"Memory Bank pronta. Dimensioni: {self.memory_bank.shape}")
