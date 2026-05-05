@@ -1,0 +1,8 @@
+#Ignora il dataset
+data/
+#Ignora i file temporanei e la cache di Python
+__pycache__/
+*.pyc
+#Ignora le cartelle degli ambienti virtuali (se utilizzati)
+venv/
+.env
